@@ -10,6 +10,7 @@ Flashing firmware step-by-step:
       esptool --port COM4 erase_flash
 2. Flashing for flash size up to 16MB:
       esptool --port COM4 --baud 460800 write_flash --flash_size=detect 0 esp8266-20171101-v1.9.3.bin
+      
    Flashing for flash size 32MB (for example Wemos D1 mini Pro):
       esptool --port COM4 --baud 460800 write_flash -fm dio -fs 32m 0 esp8266-20171101-v1.9.3.bin
 
