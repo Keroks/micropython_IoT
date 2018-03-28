@@ -19,6 +19,8 @@ Uploading files and working with console:
     ampy --port COM4 -b115200 put main.py       // on windows
 2. Starting console (picocom on linux or putty on windows):
     sudo picocom /dev/ttyUSB0 -b115200
-    putty -serial COM4 -sercfg 115200
+
+
+To send and receive AT commands over network one can use PacketSender: https://packetsender.com
 
 
