@@ -10,6 +10,8 @@ import network
 import usocket as socket
 import ParserAT
 
+from neopixel import NeoPixel
+
 led = Pin(2, Pin.OUT)
 ssid = 'TestSSID'
 password = 'TestPassword'
@@ -17,6 +19,9 @@ wlan = network.WLAN(network.STA_IF)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 addr = socket.getaddrinfo("192.168.1.40", 9999)[0][-1]
 adc = ADC(0)
+
+neopixel_pin = Pin(5, Pin.OUT)
+neopixel = NeoPixel(neopixel_pin, 8)
 
 
 def do_connect():
@@ -57,6 +62,21 @@ def read_battery(t):
     print("Battery: {}V".format(current_voltage))
     sock.sendto("+BAT={}V\r\n".format(current_voltage).encode("utf-8"), addr)
 
+_counter = 0
+def blink_neopixel(t):
+    global _counter
+    off = (0, 0, 0)
+    color1 = (255, 0, 0)
+    color2 = (150, 0, 0)
+    color3 = (70, 0, 0)
+    for i in range(0, neopixel.n):
+        neopixel[i] = off
+    neopixel[(_counter + 2) % 8] = color1
+    neopixel[(_counter + 1) % 8] = color2
+    neopixel[_counter % 8] = color3
+    _counter += 1
+    neopixel.write()
+
 
 def main():
     led(1)
@@ -72,6 +92,8 @@ def main():
     timCon.init(period=10000, mode=Timer.PERIODIC, callback=check_connection)
     timBat = Timer(1)
     timBat.init(period=5000, mode=Timer.PERIODIC, callback=read_battery)
+    timNeo = Timer(2)
+    timNeo.init(period=100, mode=Timer.PERIODIC, callback=blink_neopixel)
 
     while True:
         # print("Working...")
