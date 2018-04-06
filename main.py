@@ -9,6 +9,7 @@ import time
 import network
 import usocket as socket
 import ParserAT
+import ssd1306
 
 led = Pin(2, Pin.OUT)
 ssid = 'TestSSID'
@@ -17,6 +18,8 @@ wlan = network.WLAN(network.STA_IF)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 addr = socket.getaddrinfo("192.168.1.40", 9999)[0][-1]
 adc = ADC(0)
+i2c = I2C(-1, Pin(5), Pin(4))
+display = ssd1306.SSD1306_I2C(64, 48, i2c)
 
 
 def do_connect():
@@ -55,7 +58,10 @@ def read_battery(t):
     battery_nominal_voltage = 3.7
     current_voltage = (adc.read() * battery_nominal_voltage) / 1024
     print("Battery: {}V".format(current_voltage))
-    sock.sendto("+BAT={}V\r\n".format(current_voltage).encode("utf-8"), addr)
+    sock.sendto("+BAT={:1.2f}V\r\n".format(current_voltage).encode("utf-8"), addr)
+    display.fill(0)
+    display.text("Bat:{:1.2f}V".format(current_voltage), 0, 0)
+    display.show()
 
 
 def main():
@@ -64,7 +70,7 @@ def main():
     led(0)
     parser = ParserAT.ParserAT()
     parser.add_command("LED", led_cmd)
-    print("Will send to:", addr)
+    # print("Will send to:", addr)
     sock.bind(("", 9999))
     sock.setblocking(False)
 
