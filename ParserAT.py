@@ -34,7 +34,7 @@ class ParserAT:
                         if opcode in self._cmd_list:
                             response = self._cmd_list[opcode](operand, params)
                             if response:
-                                return response.join(self._cmd_separator), self._ok_response.join(self._cmd_separator)
+                                return response.join(self._cmd_separator) #, self._ok_response.join(self._cmd_separator)
                             else:
                                 return self._ok_response.join(self._cmd_separator)
                         else:
@@ -65,7 +65,7 @@ class ParserAT:
                         if opcode in self._cmd_list:
                             response = self._cmd_list[opcode](operand, params)
                             if response:
-                                return response.join(self._cmd_separator), self._ok_response.join(self._cmd_separator)
+                                return response.join(self._cmd_separator) #, self._ok_response.join(self._cmd_separator)
                             else:
                                 return self._ok_response.join(self._cmd_separator)
                         else:

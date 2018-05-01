@@ -4,22 +4,33 @@ Created on 24.03.2018
 @author: Adam Skorek
 '''
 
+import micropython
+micropython.alloc_emergency_exception_buf(100)
+
 from machine import Pin, I2C, Timer, ADC
+from mpu6050 import MPU
 import time
 import network
 import usocket as socket
 import ParserAT
-import ssd1306
+import CommandsAT
+import ujson
 
-led = Pin(2, Pin.OUT)
+time.sleep(5)
+
+# ssid = 'Niepokoj_Hotel'
+# password = 'N13p0k0j4c3'
 ssid = 'TestSSID'
 password = 'TestPassword'
 wlan = network.WLAN(network.STA_IF)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 addr = socket.getaddrinfo("192.168.1.40", 9999)[0][-1]
-adc = ADC(0)
-i2c = I2C(-1, Pin(5), Pin(4))
-display = ssd1306.SSD1306_I2C(64, 48, i2c)
+
+# mpu6050 pints: SCL - D6 (GPIO12) / SDA - D7 (GPIO13)
+i2c = I2C(scl=Pin(12), sda=Pin(13))
+accelerometer = MPU(i2c, 2)
+triggers = [0] * 2
+rotated_prev = rotated = False
 
 
 def do_connect():
@@ -27,8 +38,8 @@ def do_connect():
     if not wlan.isconnected():
         print('Connecting to network...')
         wlan.connect(ssid, password)
-        while not wlan.isconnected():
-            pass
+        # while not wlan.isconnected():
+            # pass
     print('Network config:', wlan.ifconfig())
 
 
@@ -40,44 +51,44 @@ def check_connection(t):
         print("Connected!")
 
 
-def led_cmd(operand, params):
-    if operand == "=":
-        if params == "ON":
-            led(0)
-            return "LED ON"
-        elif params == "OFF":
-            led(1)
-            return "LED OFF"
-        else:
-            return "WRONG PARAMS"
+def check_rotation(t):
+    position = accelerometer.read_position()
+    roll = position[1][0]
+    pitch = position[1][1]
+    yaw = position[1][2]
+    print("Rotation angles: {}, {}, {}".format(roll, pitch, yaw))
+    print("Triggers: {}, {}".format(triggers[0], triggers[1]))
+    global rotated
+    global rotated_prev
+    if triggers[0] <= roll <= triggers[1]:
+        rotated = True
     else:
-        return "WRONG OPERAND"
+        rotated = False
 
+    if rotated != rotated_prev:
+        sock.sendto('+ROT={}\r\n'.format(int(rotated)).encode('UTF-8'), addr)
 
-def read_battery(t):
-    battery_nominal_voltage = 3.7
-    current_voltage = (adc.read() * battery_nominal_voltage) / 1024
-    print("Battery: {}V".format(current_voltage))
-    sock.sendto("+BAT={:1.2f}V\r\n".format(current_voltage).encode("utf-8"), addr)
-    display.fill(0)
-    display.text("Bat:{:1.2f}V".format(current_voltage), 0, 0)
-    display.show()
+    rotated_prev = rotated
 
 
 def main():
-    led(1)
     do_connect()
-    led(0)
     parser = ParserAT.ParserAT()
-    parser.add_command("LED", led_cmd)
-    # print("Will send to:", addr)
+    global triggers
+    parser.add_command("ACC", CommandsAT.cmd_AT_accel(accelerometer, triggers))
     sock.bind(("", 9999))
     sock.setblocking(False)
 
-    timCon = Timer(-1)
-    timCon.init(period=10000, mode=Timer.PERIODIC, callback=check_connection)
-    timBat = Timer(1)
-    timBat.init(period=5000, mode=Timer.PERIODIC, callback=read_battery)
+    with open('triggers.json', 'r') as file:
+        record = file.read()
+        triggers = ujson.loads(record)
+        print("Loaded triggers: ", triggers)
+
+    tim_con = Timer(-1)
+    tim_con.init(period=10000, mode=Timer.PERIODIC, callback=check_connection)
+
+    tim_accel = Timer(1)
+    tim_accel.init(period=250, mode=Timer.PERIODIC, callback=check_rotation)
 
     while True:
         # print("Working...")
@@ -95,7 +106,8 @@ def main():
                     sock.sendto(rspStr.encode("utf-8"), addr)
             elif isinstance(response, str):
                 sock.sendto(response.encode("utf-8"), addr)
-        time.sleep(1)
+
+        time.sleep_ms(100)
 
 
 if __name__ == '__main__':
