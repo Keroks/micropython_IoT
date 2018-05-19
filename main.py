@@ -16,12 +16,12 @@ import ParserAT
 import CommandsAT
 import ujson
 
-time.sleep(5)
+# time.sleep(5)
 
-# ssid = 'Niepokoj_Hotel'
-# password = 'N13p0k0j4c3'
-ssid = 'TestSSID'
-password = 'TestPassword'
+ssid = 'Niepokoj_Hotel'
+password = 'N13p0k0j4c3'
+# ssid = 'TestSSID'
+# password = 'TestPassword'
 wlan = network.WLAN(network.STA_IF)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 addr = socket.getaddrinfo("192.168.1.40", 9999)[0][-1]
@@ -36,19 +36,19 @@ rotated_prev = rotated = False
 def do_connect():
     wlan.active(True)
     if not wlan.isconnected():
-        print('Connecting to network...')
+        # print('Connecting to network...')
         wlan.connect(ssid, password)
-        # while not wlan.isconnected():
-            # pass
-    print('Network config:', wlan.ifconfig())
+        while not wlan.isconnected():
+            pass
+    # print('Network config:', wlan.ifconfig())
 
 
 def check_connection(t):
     if not wlan.isconnected():
-        print('Network disconnected! Will try to reconnect!')
+        # print('Network disconnected! Will try to reconnect!')
         wlan.connect(ssid, password)
-    else:
-        print("Connected!")
+    # else:
+        # print("Connected!")
 
 
 def check_rotation(t):
@@ -56,11 +56,11 @@ def check_rotation(t):
     roll = position[1][0]
     pitch = position[1][1]
     yaw = position[1][2]
-    print("Rotation angles: {}, {}, {}".format(roll, pitch, yaw))
-    print("Triggers: {}, {}".format(triggers[0], triggers[1]))
+    # print("Rotation angles: {}, {}, {}".format(roll, pitch, yaw))
+    # print("Triggers: {}, {}".format(triggers[0], triggers[1]))
     global rotated
     global rotated_prev
-    if triggers[0] <= roll <= triggers[1]:
+    if triggers[0] <= roll <= triggers[1] and -10 < pitch < 10:
         rotated = True
     else:
         rotated = False
@@ -82,7 +82,7 @@ def main():
     with open('triggers.json', 'r') as file:
         record = file.read()
         triggers = ujson.loads(record)
-        print("Loaded triggers: ", triggers)
+        # print("Loaded triggers: ", triggers)
 
     tim_con = Timer(-1)
     tim_con.init(period=10000, mode=Timer.PERIODIC, callback=check_connection)
