@@ -40,7 +40,7 @@ class MPU(object):
 
         self.filter = cfilter.ComplementaryFilter()
 
-        self.init_device()
+        self.initialized = False
 
     def write_byte(self, reg, val):
         self.bytebuf[0] = val
@@ -97,6 +97,7 @@ class MPU(object):
 
     def reset(self):
         print('* reset')
+        self.initialized = False
         self.write_byte(MPU6050_RA_PWR_MGMT_1, (
             (1 << MPU6050_PWR1_DEVICE_RESET_BIT)
         ))
@@ -137,6 +138,8 @@ class MPU(object):
         # explicitly set accel/gyro range
         self.set_accel_range(MPU6050_ACCEL_FS_2)
         self.set_gyro_range(MPU6050_GYRO_FS_250)
+
+        self.initialized = True
 
     def set_gyro_range(self, fsr):
         self.gyro_range = gyro_range[fsr]

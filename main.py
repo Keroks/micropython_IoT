@@ -16,12 +16,8 @@ import ParserAT
 import CommandsAT
 import ujson
 
-# time.sleep(5)
-
-ssid = 'Niepokoj_Hotel'
-password = 'N13p0k0j4c3'
-# ssid = 'TestSSID'
-# password = 'TestPassword'
+ssid = 'TestSSID'
+password = 'TestPassword'
 wlan = network.WLAN(network.STA_IF)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 addr = socket.getaddrinfo("192.168.1.40", 9999)[0][-1]
@@ -52,7 +48,13 @@ def check_connection(t):
 
 
 def check_rotation(t):
-    position = accelerometer.read_position()
+    if not accelerometer.initialized:
+        return
+    try:
+        position = accelerometer.read_position()
+    except OSError:
+        sock.sendto('+ERROR_ACCELEROMETER\r\n'.encode('UTF-8'), addr)
+        return
     roll = position[1][0]
     pitch = position[1][1]
     yaw = position[1][2]
@@ -76,13 +78,17 @@ def main():
     parser = ParserAT.ParserAT()
     global triggers
     parser.add_command("ACC", CommandsAT.cmd_AT_accel(accelerometer, triggers))
+    parser.add_command("RESET", CommandsAT.cmd_AT_reset())
     sock.bind(("", 9999))
     sock.setblocking(False)
 
-    with open('triggers.json', 'r') as file:
-        record = file.read()
-        triggers = ujson.loads(record)
-        # print("Loaded triggers: ", triggers)
+    try:
+        with open('triggers.json', 'r') as file:
+            record = file.read()
+            triggers = ujson.loads(record)
+            # print("Loaded triggers: ", triggers)
+    except OSError:
+        print('Cannot open triggers.json file!')
 
     tim_con = Timer(-1)
     tim_con.init(period=10000, mode=Timer.PERIODIC, callback=check_connection)
@@ -92,6 +98,13 @@ def main():
 
     while True:
         # print("Working...")
+        if not accelerometer.initialized:
+            try:
+                accelerometer.init_device()
+            except OSError:
+                # print("Cannot initialize accelerometer!")
+                pass
+
         try:
             recv = sock.recv(100)
         except OSError:

@@ -1,8 +1,17 @@
 from mpu6050 import MPU
 import ujson
+import machine
+
+
+def cmd_AT_reset():
+    def reset(operans, params):
+        machine.reset()
+    return reset
 
 def cmd_AT_accel(accelerometer, triggers):
     def read_accel(operand, params):
+        if not accelerometer.initialized:
+            return "Not initialized!"
         if operand == '?':
             position = accelerometer.read_position()
             ax = position[1][0]
@@ -12,6 +21,10 @@ def cmd_AT_accel(accelerometer, triggers):
         elif operand == '=':
             if params == 'cal':
                 accelerometer.calibrate()
+                return 'OK'
+            elif params == 'reset':
+                accelerometer.reset()
+                accelerometer.init_device()
                 return 'OK'
             else:
                 parameters = params.split(',')
